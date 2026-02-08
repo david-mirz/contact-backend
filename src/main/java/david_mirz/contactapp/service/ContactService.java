@@ -47,7 +47,8 @@ public class ContactService {
         return repo.save(contact);
     }
     
-    public void deleteContact(Contact contact){
+    public void deleteContact(String id){
+        Contact contact = getContact(id);
         repo.delete(contact);
     }
 
@@ -59,18 +60,23 @@ public class ContactService {
         return photoUrl;
     }
 
-    private Function<String, String> fileExtention = filename -> Optional.of(filename).filter(name -> name.contains("."))
-        .map(name -> "." + name.substring(filename.lastIndexOf(".")+1)).orElse(".png");
+    private Function<String, String> fileExtention = filename -> 
+        Optional.of(filename)
+        .filter(name -> name.contains("."))
+        .map(name -> "." + name.substring(filename.lastIndexOf(".")+1))
+        .orElse(".png");
     
 
     private BiFunction<String, MultipartFile, String> photoFunction = (id, image) -> {
+        String filename = id + fileExtention.apply(image.getOriginalFilename());
         try {
-            String filename = fileExtention.apply(image.getOriginalFilename());
-            
             Path fileStorageLocation = Paths.get(PHOTO_DIRECTORY).toAbsolutePath().normalize();
             if (!Files.exists(fileStorageLocation)) {Files.createDirectories(fileStorageLocation); }
             Files.copy(image.getInputStream(), fileStorageLocation.resolve(filename),REPLACE_EXISTING);
-            return ServletUriComponentsBuilder.fromCurrentContextPath().path("/contacts/image" + filename).toUriString();
+            return ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path("/contacts/image/" + filename)
+                .toUriString();
 
         } catch (Exception e) {
             throw new RuntimeException("unable to save image");    
